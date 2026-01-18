@@ -4,6 +4,7 @@ import { env } from "./config/env";
 import morgan from "morgan";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
+import authRouter from "@/modules/auth/auth.routes";
 
 const app = express();
 
@@ -52,6 +53,8 @@ if (env.NODE_ENV === "development") {
 app.get("/", (_req, res) => {
   res.json({ message: "Hello this is zAcademy backend" });
 });
+
+app.use("/api/v1/auth", authRouter);
 
 // This would cause an error (unused variable)
 // const unusedVar = "test";
