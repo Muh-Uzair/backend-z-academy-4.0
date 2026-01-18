@@ -7,8 +7,9 @@ export interface IUser extends Document {
   password: string;
   role: string;
   isEmailVerified: boolean;
-  otp: string;
-  otpExpiry: Date;
+  otp: string | null;
+  otpExpiry: Date | null;
+  refreshToken: string | null;
 }
 
 const userSchema = new Schema<IUser>(
@@ -56,6 +57,11 @@ const userSchema = new Schema<IUser>(
 
     otpExpiry: {
       type: Date,
+      default: null,
+    },
+
+    refreshToken: {
+      type: String,
       default: null,
     },
   },

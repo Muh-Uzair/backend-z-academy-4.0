@@ -16,3 +16,20 @@ export const validationSignUp = z
     role: userRoleEnum,
   })
   .strict();
+
+export const validationVerifyOTP = z
+  .object({
+    email: z.email({ message: "Invalid email address" }).toLowerCase(),
+    otp: z.string(),
+  })
+  .strict();
+
+export const validationSignIn = z
+  .object({
+    email: z.email({ message: "Invalid email address" }).toLowerCase(),
+    password: z
+      .string()
+      .min(8, { message: "Password must be at least 8 characters" })
+      .max(100),
+  })
+  .strict();
