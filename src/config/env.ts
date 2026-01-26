@@ -11,7 +11,7 @@ const envSchema = z.object({
   EMAIL_USER: z.string(),
   EMAIL_PASS: z.string(),
   ACCESS_TOKEN_SECRET: z
-    .string()
+    .string() 
     .min(32, "ACCESS_TOKEN_SECRET must be at least 32 characters"),
   REFRESH_TOKEN_SECRET: z
     .string()
