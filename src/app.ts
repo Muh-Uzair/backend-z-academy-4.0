@@ -4,7 +4,15 @@ import { env } from "./config/env";
 import morgan from "morgan";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
-import authRouter from "@/modules/auth/auth.routes";
+import { authRouter } from "@/modules/auth";
+import AppError from "./utils/appError";
+import { globalErrorHandler } from "./modules/error/error.controller";
+
+process.on("uncaughtException", (err: Error) => {
+  console.log("UNCAUGHT EXCEPTION! 💥 Shutting down...");
+  console.log(err.name, err.message);
+  process.exit(1);
+});
 
 const app = express();
 
@@ -56,7 +64,16 @@ app.get("/", (_req, res) => {
 
 app.use("/api/v1/auth", authRouter);
 
-// This would cause an error (unused variable)
-// const unusedVar = "test";
+app.all(/.*/, (req: Request, res: Response, next: NextFunction) => {
+  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+});
+
+app.use(globalErrorHandler);
+
+process.on("unhandledRejection", (err: Error) => {
+  console.log("UNHANDLED REJECTION! 💥 Shutting down...");
+  console.log(err.name, err.message);
+  process.exit(1);
+});
 
 export default app;

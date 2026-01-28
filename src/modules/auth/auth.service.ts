@@ -15,6 +15,7 @@ import {
 import { Request } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "@/config/env";
+import AppError from "@/utils/appError";
 
 // FUNCTION
 export const signupService = async (reqBody: validationSignUpType) => {
@@ -76,6 +77,8 @@ export const verifyOTPService = async (reqBody: validationVerifyOTPType) => {
 
 // FUNCTION
 export const signinService = async (reqBody: validationSignInType) => {
+  throw new AppError("Hello", 400);
+
   // take
   const { email, password } = reqBody;
 
