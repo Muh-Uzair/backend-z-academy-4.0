@@ -7,8 +7,8 @@ import UserModel, { IUser } from "../users/users.model";
 
 export const verifyAccessToken = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const accessToken =
-      req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
+    const accessToken = req.cookies.accessToken;
+
     if (!accessToken) {
       res.status(401).json({ error: "Access token missing" });
       return;
@@ -30,7 +30,7 @@ export const verifyAccessToken = catchAsync(
   },
 );
 
-export const restrictTo = (...allowedRoles: string[]) => {
+export const restrictTo = (allowedRoles: string[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const user = req.user as IUser | undefined;
 

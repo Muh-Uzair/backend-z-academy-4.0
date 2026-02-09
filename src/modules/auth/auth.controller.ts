@@ -6,6 +6,7 @@ import {
   verifyOTPService,
   signoutService,
 } from "./auth.service";
+import { env } from "@/config/env";
 
 // FUNCTION
 export const signup = async (
@@ -56,15 +57,15 @@ export const signin = async (
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 15 * 60 * 1000, // 15 mins
+    secure: env.NODE_ENV === "production",
+    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 60 * 60 * 1000, // 15 mins
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: env.NODE_ENV === "production",
+    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
@@ -88,14 +89,14 @@ export const rotate = async (
 
   res.cookie("accessToken", newAccessToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: env.NODE_ENV === "production",
     sameSite: "strict",
-    maxAge: 15 * 60 * 1000, // 15 mins
+    maxAge: 60 * 60 * 1000, // 15 mins
   });
 
   res.cookie("refreshToken", newRefreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });

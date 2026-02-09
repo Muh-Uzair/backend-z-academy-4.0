@@ -16,6 +16,7 @@ import { Request } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "@/config/env";
 import AppError from "@/utils/appError";
+// import AppError from "@/utils/appError";
 
 // FUNCTION
 export const signupService = async (reqBody: validationSignUpType) => {
@@ -23,7 +24,7 @@ export const signupService = async (reqBody: validationSignUpType) => {
   const existingUser = await UserModel.findOne({ email: reqBody.email });
 
   if (existingUser) {
-    throw new Error("User already exists");
+    throw new AppError("User already exists", 400);
   }
 
   // 2: Hash password
@@ -77,8 +78,6 @@ export const verifyOTPService = async (reqBody: validationVerifyOTPType) => {
 
 // FUNCTION
 export const signinService = async (reqBody: validationSignInType) => {
-  throw new AppError("Hello", 400);
-
   // take
   const { email, password } = reqBody;
 

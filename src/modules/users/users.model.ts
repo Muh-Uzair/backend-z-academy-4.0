@@ -1,5 +1,10 @@
 import { Document, model, Schema } from "mongoose";
-import { userRoleEnum } from "../auth/auth.validation";
+
+export enum UserRoles {
+  STUDENT = "student",
+  INSTRUCTOR = "instructor",
+  ACADEMY = "academy",
+}
 
 export interface IUser extends Document {
   fullName: string;
@@ -41,7 +46,7 @@ const userSchema = new Schema<IUser>(
 
     role: {
       type: String,
-      enum: userRoleEnum.options,
+      enum: Object.values(UserRoles),
       lowercase: true,
     },
 

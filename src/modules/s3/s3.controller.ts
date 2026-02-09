@@ -1,20 +1,19 @@
 import { Request, Response, NextFunction } from "express";
-import { createCourseService } from "./courses.service";
-import { IUser } from "../users/users.model";
+import { putObjectCommandService } from "./s3.service";
 
 // FUNCTION
-export const createCourse = async (
+export const putObjectCommand = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
   // pass control to service
-  const result = await createCourseService(req.body, req.user as IUser);
+  const result = await putObjectCommandService(req.body);
 
   // send response
   res.status(201).json({
     status: "success",
-    message: "Create course successful",
+    message: "Get preSignURL successful",
     data: result,
   });
 

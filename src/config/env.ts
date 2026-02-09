@@ -11,13 +11,17 @@ const envSchema = z.object({
   EMAIL_USER: z.string(),
   EMAIL_PASS: z.string(),
   ACCESS_TOKEN_SECRET: z
-    .string() 
+    .string()
     .min(32, "ACCESS_TOKEN_SECRET must be at least 32 characters"),
   REFRESH_TOKEN_SECRET: z
     .string()
     .min(32, "ACCESS_TOKEN_SECRET must be at least 32 characters"),
   ACCESS_TOKEN_EXPIRY: z.number().default(54000000),
   REFRESH_TOKEN_EXPIRY: z.number().default(604800000),
+  AWS_REGION: z.string(),
+  AWS_ACCESS_KEY_ID: z.string(),
+  AWS_SECRET_ACCESS_KEY: z.string(),
+  AWS_S3_BUCKET_NAME: z.string(),
 });
 
 type Env = z.infer<typeof envSchema>;

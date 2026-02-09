@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const userRoleEnum = z.enum(["student", "instructor", "academy"]);
+const userRoleEnum = z.enum(["student", "instructor", "academy"]);
 
 export const validationSignUp = z
   .object({

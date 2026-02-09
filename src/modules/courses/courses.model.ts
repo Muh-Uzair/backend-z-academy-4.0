@@ -72,8 +72,7 @@ const courseSchema = new Schema<ICourse>(
     thumbnail: {
       type: String,
       required: [true, "Thumbnail image URL is required"],
-      // You can add validation for URL if you want
-      // match: [/^https?:\/\//, "Please enter a valid URL"],
+      match: [/^https?:\/\//, "Please enter a valid URL"],
     },
 
     category: {
@@ -87,7 +86,14 @@ const courseSchema = new Schema<ICourse>(
   },
 );
 
-// Create and export the model
-const Course = model<ICourse>("Course", courseSchema);
+courseSchema.index(
+  { title: 1, instructor: 1 },
+  {
+    unique: true,
+  },
+);
 
-export default Course;
+// Create and export the model
+const CourseModel = model<ICourse>("Course", courseSchema);
+
+export default CourseModel;
