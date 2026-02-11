@@ -85,14 +85,14 @@ export const signinService = async (reqBody: validationSignInType) => {
   const user = await UserModel.findOne({ email });
 
   if (!user) {
-    throw new Error("Invalid credentials");
+    throw new AppError("Invalid credentials", 400);
   }
 
   // Check password
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
-    throw new Error("Invalid credentials");
+    throw new AppError("Invalid credentials", 400);
   }
 
   // Generate tokens
@@ -102,7 +102,11 @@ export const signinService = async (reqBody: validationSignInType) => {
   // Store refresh token (hashed)
   await storeRefreshToken(user, refreshToken);
 
-  return { accessToken, refreshToken };
+  return {
+    accessToken,
+    refreshToken,
+    user: { fullName: user.fullName, email: user.email, role: user.role },
+  };
 };
 
 // FUNCTION

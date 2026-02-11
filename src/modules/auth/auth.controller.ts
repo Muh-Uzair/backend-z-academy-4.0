@@ -7,6 +7,7 @@ import {
   signoutService,
 } from "./auth.service";
 import { env } from "@/config/env";
+import { sendResponse } from "@/utils/sendResponse";
 
 // FUNCTION
 export const signup = async (
@@ -28,11 +29,7 @@ export const signup = async (
 };
 
 // FUNCTION
-export const verifyOTP = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
+export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
   // pass control to service
   const result = await verifyOTPService(req.body);
 
@@ -53,7 +50,7 @@ export const signin = async (
   next: NextFunction,
 ): Promise<void> => {
   // pass control to service
-  const { accessToken, refreshToken } = await signinService(req.body);
+  const { accessToken, refreshToken, user } = await signinService(req.body);
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
@@ -69,13 +66,11 @@ export const signin = async (
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
-  // send response
-  res.status(200).json({
+  sendResponse(res, 200, {
     status: "success",
     message: "Signin successful",
+    data: { user },
   });
-
-  return;
 };
 
 // FUNCTION
