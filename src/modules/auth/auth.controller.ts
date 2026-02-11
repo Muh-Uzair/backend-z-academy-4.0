@@ -19,13 +19,11 @@ export const signup = async (
   const result = await signupService(req.body);
 
   // send response
-  res.status(201).json({
+  sendResponse(res, 201, {
     status: "success",
     message: "signup successful",
     data: result,
   });
-
-  return;
 };
 
 // FUNCTION
@@ -34,13 +32,11 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
   const result = await verifyOTPService(req.body);
 
   // send response
-  res.status(200).json({
+  sendResponse(res, 200, {
     status: "success",
     message: "Email verified",
     data: result,
   });
-
-  return;
 };
 
 // FUNCTION

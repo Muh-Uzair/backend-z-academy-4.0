@@ -45,9 +45,7 @@ export const signupService = async (reqBody: validationSignUpType) => {
   await sendOTPEmail({ to: reqBody.email, otp });
 
   // 6: Return only what controller needs
-  return new Promise((resolve) => {
-    resolve({});
-  });
+  return {};
 };
 
 // FUNCTION
