@@ -113,7 +113,7 @@ export const rotateService = async (req: Request) => {
   const refreshToken = req.cookies.refreshToken;
 
   if (!refreshToken) {
-    throw new Error("Refresh token missing");
+    throw new AppError("Refresh token missing", 400);
   }
 
   // 2 : Verify refresh token
@@ -121,20 +121,24 @@ export const rotateService = async (req: Request) => {
     userId: string;
   };
 
+  if(!decoded.userId) {
+    throw new AppError("Invalid refresh token", 400);
+  } 
+
   // 3 : Find user
   const user = await UserModel.findById(decoded.userId);
 
   if (!user) {
-    throw new Error("Invalid refresh token");
+    throw new AppError("Invalid refresh token", 400);
   }
 
-  // 4 : Check if refresh token exists in DB (compare hashed)
-  const hashedToken = await bcrypt.hash(refreshToken, 10);
+  const correctToken = await bcrypt.compare(
+    refreshToken,
+    user.refreshToken as string,
+  );
 
-  const tokenExists = user.refreshToken === hashedToken;
-
-  if (!tokenExists) {
-    throw new Error("Invalid refresh token");
+  if (!correctToken) {
+    throw new AppError("Invalid refresh token", 400);
   }
 
   // Generate new access token

@@ -81,14 +81,14 @@ export const rotate = async (
   res.cookie("accessToken", newAccessToken, {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 60 * 60 * 1000, // 15 mins
   });
 
   res.cookie("refreshToken", newRefreshToken, {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
