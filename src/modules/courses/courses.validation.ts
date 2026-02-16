@@ -19,3 +19,9 @@ export const validationCreateCourse = z
     thumbnail: z.url({ error: "Please enter a valid URL" }),
   })
   .strict();
+
+export const validationGetCourseOnId = z
+  .object({
+    id: z.string(),
+  })
+  .strict();

@@ -13,6 +13,7 @@ export enum PaymentStatus {
   PAID = "paid",
   PENDING = "pending",
   REFUNDED = "refunded",
+  FAILED = "failed",
 }
 
 // Interface for TypeScript
@@ -93,6 +94,6 @@ const enrollmentSchema = new Schema<IEnrollment>(
 enrollmentSchema.index({ student: 1, course: 1 }, { unique: true }); // prevent double enrollment
 enrollmentSchema.index({ instructor: 1, status: 1 }); // for instructor dashboard stats
 
-const Enrollment = model<IEnrollment>("Enrollment", enrollmentSchema);
+const EnrollmentModel = model<IEnrollment>("Enrollment", enrollmentSchema);
 
-export default Enrollment;
+export default EnrollmentModel;

@@ -2,7 +2,10 @@
 import AppError from "@/utils/appError";
 import { IUser } from "../users/users.model";
 import CourseModel from "./courses.model";
-import { validationCreateCourseType } from "./courses.types";
+import {
+  validationCreateCourseType,
+  validationGetCourseOnIdType,
+} from "./courses.types";
 
 // FUNCTION
 export const createCourseService = async (
@@ -28,4 +31,32 @@ export const createCourseService = async (
   return {
     course: newCourse,
   };
+};
+
+// FUNCTION
+export const getAllCoursesService = async () => {
+  const courses = await CourseModel.find({}).populate(
+    "instructor",
+    "_id, fullName",
+  );
+
+  return { courses };
+};
+
+// FUNCTION
+export const getCourseOnIdService = async (
+  reqParams: validationGetCourseOnIdType,
+) => {
+  const { id } = reqParams;
+
+  const course = await CourseModel.findById(id).populate(
+    "instructor",
+    "_id, fullName",
+  );
+
+  if (!course) {
+    throw new AppError("No course found with that ID", 404);
+  }
+
+  return { course };
 };

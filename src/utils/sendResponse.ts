@@ -1,7 +1,7 @@
 import { Response } from "express";
 
 interface ISendResponse {
-  status: "success" | "error";
+  status: "success" | "error" | "fail";
   message?: string;
   data?: any;
 }

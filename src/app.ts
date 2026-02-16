@@ -9,6 +9,7 @@ import AppError from "./utils/appError";
 import { globalErrorHandler } from "./modules/error/error.controller";
 import s3Router from "@/modules/s3/s3.routes";
 import coursesRouter from "@/modules/courses/courses.routes";
+import enrollmentRouter from "./modules/enrollments/enrollments.routes";
 
 process.on("uncaughtException", (err: Error) => {
   console.log("UNCAUGHT EXCEPTION! 💥 Shutting down...");
@@ -67,6 +68,7 @@ app.get("/", (_req, res) => {
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/s3", s3Router);
 app.use("/api/v1/courses", coursesRouter);
+app.use("/api/v1/enrollments", enrollmentRouter);
 
 app.all(/.*/, (req: Request, res: Response, next: NextFunction) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
