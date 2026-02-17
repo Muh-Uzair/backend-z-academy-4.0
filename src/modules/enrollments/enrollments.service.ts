@@ -7,7 +7,17 @@ import { validationCreateEnrollmentType } from "./enrollments.types";
 export const createEnrollmentService = async (
   reqBody: validationCreateEnrollmentType,
 ) => {
-  const newCourse = await EnrollmentModel.create(reqBody);
+  const newEnrollment = await EnrollmentModel.create(reqBody);
 
-  return { course: newCourse };
+  return { enrollment: newEnrollment };
+};
+
+// FUNCTION
+export const getAllEnrollmentsService = async () => {
+  const enrollments = await EnrollmentModel.find({})
+    .populate("instructor", "_id fullName")
+    .populate("student", "_id fullName")
+    .populate("course", "_id title");
+
+  return { enrollments };
 };

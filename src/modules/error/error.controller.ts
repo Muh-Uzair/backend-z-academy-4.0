@@ -16,6 +16,12 @@ const sendErrorDev = (err: AppError, res: Response) => {
   //     message: err.message,
   //     stack: err.stack,
   //   });
+  console.log("Dev error -------------------------------------", err);
+
+  console.log("Dev error --------------------------\n", {
+    errorMessage: err.message,
+    error: err,
+  });
   res.status(err.statusCode).json({
     status: err.status,
     message: err.message,
@@ -32,10 +38,6 @@ const sendErrorProd = (err: AppError, res: Response) => {
   }
   // Programming or other unknown error: don't leak error details
   else {
-    // 1) Log error for debugging
-    console.error("ERROR 💥", err);
-
-    // 2) Send generic message
     res.status(500).json({
       status: "error",
       message: "Something went very wrong!",
