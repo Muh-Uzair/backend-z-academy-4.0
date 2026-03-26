@@ -9,6 +9,7 @@ export const createEnrollment = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
+  console.log("Hello --------------------------------------");
   // pass control to service
   const result = await createEnrollmentService(req.body);
 
@@ -28,7 +29,7 @@ export const getAllEnrollments = async (
   res: Response,
 ): Promise<void> => {
   // pass control to service
-  const result = await getAllEnrollmentsService();
+  const result = await getAllEnrollmentsService(req);
 
   // send response
   res.status(200).json({

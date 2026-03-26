@@ -37,7 +37,7 @@ const userSchema = new Schema<IUser>(
         "Please enter a valid email",
       ],
     },
-      
+
     password: {
       type: String,
       required: [true, "Password is required"],

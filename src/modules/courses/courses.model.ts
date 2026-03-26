@@ -29,8 +29,6 @@ export interface ICourse extends Document {
   level: CourseLevel;
   thumbnail: string;
   category: CourseCategory;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 // Course Schema

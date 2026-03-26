@@ -15,7 +15,7 @@ import {
 import { Request } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "@/config/env";
-import AppError from "@/utils/appError";
+import AppError from "@/utils/appError.utils";
 // import AppError from "@/utils/appError";
 
 // FUNCTION
@@ -121,9 +121,9 @@ export const rotateService = async (req: Request) => {
     userId: string;
   };
 
-  if(!decoded.userId) {
+  if (!decoded.userId) {
     throw new AppError("Invalid refresh token", 400);
-  } 
+  }
 
   // 3 : Find user
   const user = await UserModel.findById(decoded.userId);

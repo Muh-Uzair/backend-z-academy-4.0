@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "@/config/env";
-import catchAsync from "@/utils/catchAsync";
+import catchAsync from "@/utils/catchAsync.utils";
 import UserModel, { IUser } from "../users/users.model";
 
 export const verifyAccessToken = catchAsync(

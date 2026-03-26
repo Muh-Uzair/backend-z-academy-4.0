@@ -5,7 +5,7 @@ import morgan from "morgan";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
 import { authRouter } from "@/modules/auth";
-import AppError from "./utils/appError";
+import AppError from "./utils/appError.utils";
 import { globalErrorHandler } from "./modules/error/error.controller";
 import s3Router from "@/modules/s3/s3.routes";
 import coursesRouter from "@/modules/courses/courses.routes";
@@ -23,10 +23,25 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS middleware
+// List of allowed origins (frontend URLs that are permitted to make requests)
+const allowedOrigins = [env.FRONT_END_URL];
+
 app.use(
   cors({
-    origin: env.FRONT_END_URL,
+    origin: function (origin, callback) {
+      // Allow requests with no origin
+      // (important for mobile apps, curl, Postman, server-to-server calls, etc.)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Check if the request origin is in the allowed list
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   }),
 );

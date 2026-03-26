@@ -1,5 +1,5 @@
 import express, { Router } from "express";
-import catchAsync from "@/utils/catchAsync";
+import catchAsync from "@/utils/catchAsync.utils";
 import { validation, validationParams } from "@/utils/validation";
 import {
   validationCreateCourse,

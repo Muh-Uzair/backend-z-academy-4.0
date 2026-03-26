@@ -1,4 +1,4 @@
-import catchAsync from "@/utils/catchAsync";
+import catchAsync from "@/utils/catchAsync.utils";
 import express, { Router } from "express";
 import { putObjectCommand } from "./s3.controller";
 import { validation } from "@/utils/validation";

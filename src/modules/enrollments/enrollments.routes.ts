@@ -1,5 +1,5 @@
 import express, { Router } from "express";
-import catchAsync from "@/utils/catchAsync";
+import catchAsync from "@/utils/catchAsync.utils";
 import { verifyAccessToken } from "../auth";
 import { createEnrollment, getAllEnrollments } from "./enrollments.controller";
 import { validation } from "@/utils/validation";

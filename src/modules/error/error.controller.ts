@@ -1,4 +1,4 @@
-import AppError from "@/utils/appError";
+import AppError from "@/utils/appError.utils";
 import { NextFunction, Response, Request } from "express";
 import {
   handleCastErrorDB,

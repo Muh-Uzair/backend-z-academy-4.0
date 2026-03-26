@@ -1,11 +1,13 @@
 // import CourseModel from "./courses.model";
-import AppError from "@/utils/appError";
+import AppError from "@/utils/appError.utils";
 import { IUser } from "../users/users.model";
 import CourseModel from "./courses.model";
 import {
   validationCreateCourseType,
   validationGetCourseOnIdType,
 } from "./courses.types";
+import { createConversationService } from "../conversations/conversations.service";
+import { ConversationType } from "../conversations/conversations.model";
 
 // FUNCTION
 export const createCourseService = async (
@@ -26,6 +28,16 @@ export const createCourseService = async (
   const newCourse = await CourseModel.create({
     ...reqBody,
     instructor: user?._id,
+  });
+
+  if (!newCourse) {
+    throw new AppError("Something went wrong while creating course", 500);
+  }
+
+  // create an conversation for this course
+  createConversationService({
+    conversationType: ConversationType.COURSE_PUBLIC,
+    course: newCourse?._id,
   });
 
   return {

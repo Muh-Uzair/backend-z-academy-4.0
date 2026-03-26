@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { rotate, signin, signout, signup, verifyOTP } from "./auth.controller";
-import catchAsync from "@/utils/catchAsync";
+import catchAsync from "@/utils/catchAsync.utils";
 import { validation } from "@/utils/validation";
 import {
   validationSignIn,
