@@ -2,19 +2,20 @@ import { Server } from "socket.io";
 import Redis from "ioredis";
 import MessageModel from "@/modules/messages/messages.model";
 import { validationCreateMessage } from "@/modules/messages/messages.validation";
+import { env } from "@/config/env";
 
 const pub = new Redis({
-  host: "valkey-2321c90-muhammaduzair1062001-8671.c.aivencloud.com",
-  port: 16725,
-  username: "default",
-  password: "AVNS_RiGXzlOW__uNDmyBYpo",
+  host: env.REDIS_HOST,
+  port: env.REDIS_PORT,
+  username: env.REDIS_USERNAME,
+  password: env.REDIS_PASSWORD,
 });
 
 const sub = new Redis({
-  host: "valkey-2321c90-muhammaduzair1062001-8671.c.aivencloud.com",
-  port: 16725,
-  username: "default",
-  password: "AVNS_RiGXzlOW__uNDmyBYpo",
+  host: env.REDIS_HOST,
+  port: env.REDIS_PORT,
+  username: env.REDIS_USERNAME,
+  password: env.REDIS_PASSWORD,
 });
 
 // DIVIDER main class
