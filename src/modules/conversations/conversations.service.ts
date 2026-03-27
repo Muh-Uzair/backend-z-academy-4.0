@@ -11,7 +11,7 @@ export const createConversationService = async ({
   course: Types.ObjectId;
 }) => {
   // check if the course id existing
-  const existingConversation = await ConversationModel.findOne({});
+  const existingConversation = await ConversationModel.findOne({ course });
 
   if (existingConversation) {
     throw new AppError("You already have a conversation for this course", 409);
@@ -24,6 +24,6 @@ export const createConversationService = async ({
   });
 
   return {
-    course: newConversation,
+    conversation: newConversation,
   };
 };

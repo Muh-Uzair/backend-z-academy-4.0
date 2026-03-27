@@ -36,6 +36,7 @@ function validateEnv(): Env {
       ...process.env,
       ACCESS_TOKEN_EXPIRY: Number(process.env.ACCESS_TOKEN_EXPIRY),
       REFRESH_TOKEN_EXPIRY: Number(process.env.REFRESH_TOKEN_EXPIRY),
+      REDIS_PORT: Number(process.env.REDIS_PORT),
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

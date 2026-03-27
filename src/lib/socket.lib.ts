@@ -69,8 +69,8 @@ class SocketLib {
       // DIVIDER joining the course room
       socket.on(
         "event:join-course-room",
-        async ({ courseId }: { courseId: string }) => {
-          const roomName = `course:${courseId}`;
+        async ({ conversationId }: { conversationId: string }) => {
+          const roomName = `course:${conversationId}`;
           socket.join(roomName);
         },
       );
@@ -79,9 +79,9 @@ class SocketLib {
       socket.on(
         "event:course-message",
         async (data: {
-          conversationId: string;
-          senderId: string;
-          receiverId: null;
+          conversation: string;
+          sender: string;
+          receiver: null;
           content: string;
           messageType: "text" | "file";
         }) => {
@@ -111,25 +111,18 @@ class SocketLib {
           const validatedData = validationResult.data;
 
           // 4 : save to db
-          await MessageModel.create({
-            conversationId: validatedData.conversationId,
-            senderId: validatedData.senderId,
-            receiverId: null,
+          const newMessage = await MessageModel.create({
+            conversation: validatedData.conversation,
+            sender: validatedData.sender,
+            receiver: null,
             content: validatedData.content,
             messageType: validatedData.messageType,
           });
 
           // 5 : broadcast into room
-          const roomName = `course:${validatedData.conversationId}`;
+          const roomName = `course:${validatedData.conversation}`;
 
-          socket.to(roomName).emit("event:course-message", {
-            conversationId: validatedData.conversationId,
-            senderId: validatedData.senderId,
-            content: validatedData.content,
-            messageType: validatedData.messageType,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
+          io.to(roomName).emit("event:course-message", newMessage);
 
           // TODO: publish into kafka
         },

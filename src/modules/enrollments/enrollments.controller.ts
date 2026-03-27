@@ -9,7 +9,6 @@ export const createEnrollment = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  console.log("Hello --------------------------------------");
   // pass control to service
   const result = await createEnrollmentService(req.body);
 

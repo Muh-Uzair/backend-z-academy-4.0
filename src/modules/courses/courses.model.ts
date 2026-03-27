@@ -24,11 +24,12 @@ export enum CourseCategory {
 export interface ICourse extends Document {
   title: string;
   description: string;
-  instructor: Types.ObjectId; // reference to User
+  instructor: Types.ObjectId;
   price: number;
   level: CourseLevel;
   thumbnail: string;
   category: CourseCategory;
+  conversation: Types.ObjectId;
 }
 
 // Course Schema
@@ -77,6 +78,11 @@ const courseSchema = new Schema<ICourse>(
       type: String,
       enum: Object.values(CourseCategory),
       required: [true, "Category is required"],
+    },
+
+    conversation: {
+      type: Schema.Types.ObjectId,
+      ref: "Conversation",
     },
   },
   {

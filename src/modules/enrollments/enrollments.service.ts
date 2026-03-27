@@ -10,8 +10,6 @@ import { Request } from "express";
 export const createEnrollmentService = async (
   reqBody: validationCreateEnrollmentType,
 ) => {
-  console.log("reqBody -----------------------------\n", reqBody);
-
   const newEnrollment = await EnrollmentModel.create(reqBody);
 
   return { enrollment: newEnrollment };
@@ -33,14 +31,14 @@ export const getAllEnrollmentsService = async (req: Request) => {
 
     enrollments = await EnrollmentModel.find({ instructor: instructorId })
       .populate("instructor", "_id fullName")
-      .populate("course", "_id title");
+      .populate("course", "_id title conversation");
   } else if (user?.role === "student") {
     const studentId = user?._id;
 
     enrollments = await EnrollmentModel.find({ student: studentId })
       .populate("student", "_id fullName")
       .populate("instructor", "_id fullName")
-      .populate("course", "_id title");
+      .populate("course", "_id title conversation");
   }
 
   return { enrollments };

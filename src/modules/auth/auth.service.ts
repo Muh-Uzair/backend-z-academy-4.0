@@ -103,7 +103,7 @@ export const signinService = async (reqBody: validationSignInType) => {
   return {
     accessToken,
     refreshToken,
-    user: { fullName: user.fullName, email: user.email, role: user.role },
+    user: { _id: user._id, fullName: user.fullName, email: user.email, role: user.role },
   };
 };
 
@@ -157,7 +157,7 @@ export const signoutService = async (req: Request) => {
   const refreshToken = req.cookies.refreshToken;
 
   if (!refreshToken) {
-    throw new Error("No refresh token");
+    throw new AppError("No refresh token", 400);
   }
 
   // 2 : decode it
@@ -168,11 +168,19 @@ export const signoutService = async (req: Request) => {
   // 3 : find that user
   const user = await UserModel.findById(decoded.userId);
 
-  // 4 : has token
-  const hashedToken = await bcrypt.hash(refreshToken, 10);
+  if (!user) {
+    throw new AppError("User with this refresh token does not exists", 400);
+  }
 
-  if (!user || user.refreshToken !== hashedToken) {
-    throw new Error("Invalid refresh token");
+  if (!user.refreshToken) {
+    throw new AppError("Invalid refresh token", 400);
+  }
+
+  // 4 : compare plain token with stored hashed token
+  const correctToken = await bcrypt.compare(refreshToken, user.refreshToken);
+
+  if (!correctToken) {
+    throw new AppError("Invalid refresh token", 400);
   }
 
   user.refreshToken = null;

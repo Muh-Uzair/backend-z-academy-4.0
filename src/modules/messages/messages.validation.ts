@@ -6,11 +6,18 @@ const objectIdSchema = z.string().refine((val) => Types.ObjectId.isValid(val), {
   error: "Invalid ObjectId",
 });
 
+const messageParticipantSchema = z
+  .object({
+    id: objectIdSchema,
+    fullName: z.string().min(1, { message: "Full name is required" }).trim(),
+  })
+  .strict();
+
 export const validationCreateMessage = z
   .object({
-    conversationId: objectIdSchema,
-    senderId: objectIdSchema,
-    receiverId: objectIdSchema.nullable(),
+    conversation: objectIdSchema,
+    sender: messageParticipantSchema,
+    receiver: messageParticipantSchema.nullable(),
 
     content: z
       .string()
@@ -19,5 +26,11 @@ export const validationCreateMessage = z
       .trim(),
 
     messageType: z.enum(MessageType),
+  })
+  .strict();
+
+export const validationGetAllMessagesOnConversationId = z
+  .object({
+    conversationId: objectIdSchema,
   })
   .strict();

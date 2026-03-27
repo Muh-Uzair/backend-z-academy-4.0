@@ -35,10 +35,19 @@ export const createCourseService = async (
   }
 
   // create an conversation for this course
-  createConversationService({
+  const newConversation = await createConversationService({
     conversationType: ConversationType.COURSE_PUBLIC,
     course: newCourse?._id,
   });
+
+  if (!newConversation) {
+    throw new AppError("Something went wrong while creating conversation", 500);
+  }
+
+  // create the reference of conversation in course
+  newCourse.conversation = newConversation.conversation._id;
+
+  await newCourse.save()
 
   return {
     course: newCourse,
