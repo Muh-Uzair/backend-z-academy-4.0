@@ -71,6 +71,12 @@ class SocketLib {
         "event:join-course-room",
         async ({ conversationId }: { conversationId: string }) => {
           const roomName = `course:${conversationId}`;
+
+          console.log(
+            "joinRoom ----------------------------------\n",
+            roomName,
+          );
+
           socket.join(roomName);
         },
       );
@@ -122,9 +128,29 @@ class SocketLib {
           // 5 : broadcast into room
           const roomName = `course:${validatedData.conversation}`;
 
+          console.log(
+            "roomName ----------------------------------\n",
+            roomName,
+          );
+
           io.to(roomName).emit("event:course-message", newMessage);
 
           // TODO: publish into kafka
+        },
+      );
+
+      // DIVIDER
+      socket.on(
+        "event:leave-course-room",
+        async ({ conversationId }: { conversationId: string }) => {
+          const roomName = `course:${conversationId}`;
+
+          console.log(
+            "leaveRoom ----------------------------------\n",
+            roomName,
+          );
+
+          socket.leave(roomName);
         },
       );
 

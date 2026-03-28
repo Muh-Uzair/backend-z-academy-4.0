@@ -7,7 +7,9 @@ export const getAllMessagesOnConversationIdService = async (
 ) => {
   const { conversationId } = reqParams;
 
-  const allMessages = await MessageModel.find({ conversationId }).sort({
+  const allMessages = await MessageModel.find({
+    conversation: conversationId,
+  }).sort({
     createdAt: 1,
   });
 
