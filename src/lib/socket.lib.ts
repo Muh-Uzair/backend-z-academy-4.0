@@ -116,7 +116,19 @@ class SocketLib {
           // 3 : if validation passes
           const validatedData = validationResult.data;
 
-          // 4 : save to db
+          // 4 : check that user has joined or not
+          const roomName = `course:${validatedData.conversation}`;
+          const isJoined = socket.rooms.has(roomName);
+
+          if (!isJoined) {
+            socket.emit("event:course-message-error", {
+              message: "You are not connected to this conversation room",
+            });
+
+            return;
+          }
+
+          // 5 : save to db
           const newMessage = await MessageModel.create({
             conversation: validatedData.conversation,
             sender: validatedData.sender,
@@ -125,9 +137,7 @@ class SocketLib {
             messageType: validatedData.messageType,
           });
 
-          // 5 : broadcast into room
-          const roomName = `course:${validatedData.conversation}`;
-
+          // 6 : broadcast into room
           console.log(
             "roomName ----------------------------------\n",
             roomName,
@@ -139,7 +149,7 @@ class SocketLib {
         },
       );
 
-      // DIVIDER
+      // DIVIDER leaving course room
       socket.on(
         "event:leave-course-room",
         async ({ conversationId }: { conversationId: string }) => {
