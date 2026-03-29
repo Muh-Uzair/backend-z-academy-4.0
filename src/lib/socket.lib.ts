@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import Redis from "ioredis";
-import MessageModel from "@/modules/messages/messages.model";
+import MessageModel, { IMessage } from "@/modules/messages/messages.model";
 import { validationCreateMessage } from "@/modules/messages/messages.validation";
 import { env } from "@/config/env";
 
@@ -161,6 +161,20 @@ class SocketLib {
           );
 
           socket.leave(roomName);
+        },
+      );
+
+      socket.on(
+        "event:join-course-private-room",
+        (data: Omit<IMessage, "conversation" | "content" | "messageType">) => {
+          console.log(
+            "join course private room ---------------------------------------\n",
+            data,
+          );
+
+          // 1 : we need to check wether conversation for these 2 users exists or not
+
+          // 2 : join the user into that conversation
         },
       );
 

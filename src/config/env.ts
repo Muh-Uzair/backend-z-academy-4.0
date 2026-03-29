@@ -6,7 +6,7 @@ const envSchema = z.object({
     .enum(["development", "production", "test"])
     .default("development"),
   PORT: z.string().default("4000"),
-  FRONT_END_URL: z.url().default("http://192.168.1.6:3000"),
+  FRONT_END_URL: z.url().default("http://192.168.18.6:3000"),
   MONGO_DB_CONNECTION_STRING: z.string(),
   EMAIL_USER: z.string(),
   EMAIL_PASS: z.string(),

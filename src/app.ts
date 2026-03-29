@@ -2,15 +2,14 @@ import express, { NextFunction, Response, Request } from "express";
 import cors from "cors";
 import { env } from "./config/env";
 import morgan from "morgan";
-import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
 import { authRouter } from "@/modules/auth";
+import { coursesRouter } from "@/modules/courses";
+import { enrollmentRouter } from "@/modules/enrollments";
+import { messagesRouter } from "@/modules/messages";
 import AppError from "./utils/appError.utils";
 import { globalErrorHandler } from "./modules/error/error.controller";
 import s3Router from "@/modules/s3/s3.routes";
-import coursesRouter from "@/modules/courses/courses.routes";
-import enrollmentRouter from "./modules/enrollments/enrollments.routes";
-import messagesRouter from "./modules/messages/messages.routes";
 
 process.on("uncaughtException", (err: Error) => {
   console.log("UNCAUGHT EXCEPTION! 💥 Shutting down...");
@@ -49,21 +48,7 @@ app.use(
 
 app.use(cookieParser());
 
-// mongodb connection
-app.use((req: Request, res: Response, next: NextFunction) => {
-  mongoose
-    .connect(env.MONGO_DB_CONNECTION_STRING, {
-      bufferCommands: false,
-    })
-    .then(() => {
-      console.log("Database connection successful");
-      next();
-    })
-    .catch((err) => {
-      console.error("Database connection error:", err);
-      res.status(500).json({ message: "Error connecting to mongodb" });
-    });
-});
+
 
 // morgan logger
 if (env.NODE_ENV === "development") {

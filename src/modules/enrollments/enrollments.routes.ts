@@ -17,4 +17,5 @@ enrollmentRouter
   )
   .get(verifyAccessToken, catchAsync(getAllEnrollments));
 
+export { enrollmentRouter };
 export default enrollmentRouter;

@@ -30,4 +30,9 @@ coursesRouter
   .route("/:id")
   .get(validationParams(validationGetCourseOnId), catchAsync(getCourseOnId));
 
+coursesRouter
+  .route("/get-course-student-instructor-list/:course")
+  .get(verifyAccessToken);
+
+export { coursesRouter };
 export default coursesRouter;

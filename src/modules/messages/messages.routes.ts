@@ -17,4 +17,5 @@ messagesRouter
     catchAsync(getAllMessagesOnConversationId),
   );
 
+export { messagesRouter };
 export default messagesRouter;
