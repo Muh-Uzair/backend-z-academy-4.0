@@ -1,5 +1,10 @@
 import z from "zod";
+import { Types } from "mongoose";
 import { CourseCategory, CourseLevel } from "./courses.model";
+
+const objectIdSchema = z.string().refine((val) => Types.ObjectId.isValid(val), {
+  error: "Invalid ObjectId",
+});
 
 export const validationCreateCourse = z
   .object({
@@ -23,5 +28,11 @@ export const validationCreateCourse = z
 export const validationGetCourseOnId = z
   .object({
     id: z.string(),
+  })
+  .strict();
+
+export const validationGetCourseStudentInstructorList = z
+  .object({
+    course: objectIdSchema,
   })
   .strict();

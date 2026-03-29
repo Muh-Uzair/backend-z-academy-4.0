@@ -8,6 +8,7 @@ export enum ConversationType {
 export interface IConversation extends Document {
   conversationType: ConversationType;
   course?: Types.ObjectId;
+  privateChatConversationId: string | undefined;
   participants?: Types.ObjectId[];
 }
 
@@ -23,7 +24,19 @@ const conversationSchema = new Schema<IConversation>(
     course: {
       type: Schema.Types.ObjectId,
       ref: "Course",
-      required: [true, "Course ID is required for course public conversations"],
+      required: [true, "Course ID is required"],
+    },
+
+    privateChatConversationId: {
+      type: String,
+      required: [
+        function () {
+          return this.conversationType === ConversationType.PRIVATE_1V1;
+        },
+        "Unique private chat conversation id is required for private 1v1 conversations",
+      ],
+      unique: true,
+      index: true,
     },
 
     participants: {
@@ -40,8 +53,6 @@ const conversationSchema = new Schema<IConversation>(
     timestamps: true,
   },
 );
-
-conversationSchema.index({ course: 1 }, { unique: true });
 
 const ConversationModel = model<IConversation>(
   "Conversation",

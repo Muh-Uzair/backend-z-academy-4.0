@@ -3,9 +3,13 @@ import {
   createCourseService,
   getAllCoursesService,
   getCourseOnIdService,
+  getCourseStudentInstructorListService,
 } from "./courses.service";
 import { IUser } from "../users/users.model";
-import { validationGetCourseOnIdType } from "./courses.types";
+import {
+  validationGetCourseOnIdType,
+  validationGetCourseStudentInstructorListType,
+} from "./courses.types";
 
 // FUNCTION
 export const createCourse = async (
@@ -57,6 +61,24 @@ export const getCourseOnId = async (
   res.status(201).json({
     status: "success",
     message: "Get all courses successful",
+    data: result,
+  });
+
+  return;
+};
+
+// FUNCTION
+export const getCourseStudentInstructorList = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  const result = await getCourseStudentInstructorListService(req,
+    req.params as validationGetCourseStudentInstructorListType,
+  );
+
+  res.status(200).json({
+    status: "success",
+    message: "Get course student instructor list successful.",
     data: result,
   });
 

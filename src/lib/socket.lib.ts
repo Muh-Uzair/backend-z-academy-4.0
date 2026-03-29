@@ -1,8 +1,14 @@
 import { Server } from "socket.io";
 import Redis from "ioredis";
-import MessageModel, { IMessage } from "@/modules/messages/messages.model";
+import MessageModel from "@/modules/messages/messages.model";
 import { validationCreateMessage } from "@/modules/messages/messages.validation";
 import { env } from "@/config/env";
+import generatePrivateConversationId from "@/utils/generatePrivateConversationId";
+import ConversationModel, {
+  ConversationType,
+  IConversation,
+} from "@/modules/conversations/conversations.model";
+import { Types } from "mongoose";
 
 const pub = new Redis({
   host: env.REDIS_HOST,
@@ -77,6 +83,14 @@ class SocketLib {
             roomName,
           );
 
+          const existingPrivateRooms = Array.from(socket.rooms).filter((room) =>
+            room.startsWith("course:"),
+          );
+
+          await Promise.all(
+            existingPrivateRooms.map((room) => socket.leave(room)),
+          );
+
           socket.join(roomName);
         },
       );
@@ -86,8 +100,14 @@ class SocketLib {
         "event:course-message",
         async (data: {
           conversation: string;
-          sender: string;
-          receiver: null;
+          sender: {
+            id: string;
+            fullName: string;
+          };
+          receiver: {
+            id: string;
+            fullName: string;
+          };
           content: string;
           messageType: "text" | "file";
         }) => {
@@ -164,17 +184,140 @@ class SocketLib {
         },
       );
 
+      // DIVIDER joining private course room
       socket.on(
         "event:join-course-private-room",
-        (data: Omit<IMessage, "conversation" | "content" | "messageType">) => {
-          console.log(
-            "join course private room ---------------------------------------\n",
-            data,
+        async (data: {
+          course: string;
+          sender: {
+            id: Types.ObjectId;
+            fullName: string;
+          };
+          receiver: {
+            id: Types.ObjectId;
+            fullName: string;
+          };
+        }) => {
+          console.log(data);
+          // 1 : generate a unique conversation id
+          const uniqueConversationId: string = generatePrivateConversationId(
+            String(data.course),
+            String(data.sender?.id),
+            String(data.receiver?.id),
           );
 
-          // 1 : we need to check wether conversation for these 2 users exists or not
+          // 2 : check the conversation for this or create a new one
+          let conversation: IConversation | null | unknown = null;
 
-          // 2 : join the user into that conversation
+          conversation = await ConversationModel.findOne({
+            privateChatConversationId: uniqueConversationId,
+          });
+
+          if (!conversation) {
+            conversation = await ConversationModel.create({
+              conversationType: ConversationType.PRIVATE_1V1,
+              course: data.course,
+              privateChatConversationId: uniqueConversationId,
+              participants: [data.sender?.id, data.receiver?.id],
+            });
+          }
+
+          if (!conversation) {
+            throw new Error("Something went wrong while creating conversation");
+          }
+
+          // 3 : join the user into this conversation with room name as course-private:uniqueConversationId
+          const roomName = `course-private:${(conversation as IConversation)._id}`;
+
+          const existingPrivateRooms = Array.from(socket.rooms).filter((room) =>
+            room.startsWith("course-private:"),
+          );
+
+          await Promise.all(
+            existingPrivateRooms.map((room) => socket.leave(room)),
+          );
+
+          socket.join(roomName);
+
+          // 4 : send conversation info to that exact user
+          socket.emit("event:course-private-conversation-info", conversation);
+        },
+      );
+
+      // DIVIDER listening for private message
+      socket.on(
+        "event:course-private-message",
+        async (data: {
+          conversation: string;
+          sender: {
+            id: string;
+            fullName: string;
+          };
+          receiver: {
+            id: string;
+            fullName: string;
+          };
+          content: string;
+          messageType: "text" | "file";
+        }) => {
+          const conversation = await ConversationModel.findOne({
+            privateChatConversationId: data.conversation,
+            conversationType: ConversationType.PRIVATE_1V1,
+          });
+
+          if (!conversation) {
+            socket.emit("event:course-private-message-error", {
+              message: "Private conversation not found",
+            });
+
+            return;
+          }
+
+          const validationResult = validationCreateMessage.safeParse({
+            ...data,
+            conversation: String(conversation._id),
+          });
+
+          if (!validationResult.success) {
+            const { issues } = validationResult.error;
+
+            console.error("Validation Error:", issues);
+
+            socket.emit("event:course-private-message-error", {
+              message: "Invalid private message data",
+              errors: issues.map((iss) => ({
+                path: iss.path,
+                code: iss.code,
+                message: iss.message,
+              })),
+            });
+
+            return;
+          }
+
+          const validatedData = validationResult.data;
+
+          const roomName = `course-private:${conversation._id}`;
+          const isJoined = socket.rooms.has(roomName);
+
+          if (!isJoined) {
+            socket.emit("event:course-private-message-error", {
+              message:
+                "You are not connected to this private conversation room",
+            });
+
+            return;
+          }
+
+          const newMessage = await MessageModel.create({
+            conversation: validatedData.conversation,
+            sender: validatedData.sender,
+            receiver: validatedData.receiver,
+            content: validatedData.content,
+            messageType: validatedData.messageType,
+          });
+
+          io.to(roomName).emit("event:course-private-message", newMessage);
         },
       );
 

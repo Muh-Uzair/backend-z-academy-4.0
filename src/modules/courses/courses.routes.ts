@@ -4,11 +4,13 @@ import { validation, validationParams } from "@/utils/validation";
 import {
   validationCreateCourse,
   validationGetCourseOnId,
+  validationGetCourseStudentInstructorList,
 } from "./courses.validation";
 import {
   createCourse,
   getAllCourses,
   getCourseOnId,
+  getCourseStudentInstructorList,
 } from "./courses.controller";
 import { restrictTo, verifyAccessToken } from "../auth";
 import { UserRoles } from "../users/users.model";
@@ -27,12 +29,20 @@ coursesRouter
   .get(catchAsync(getAllCourses));
 
 coursesRouter
-  .route("/:id")
-  .get(validationParams(validationGetCourseOnId), catchAsync(getCourseOnId));
+  .route("/get-course-student-instructor-list/:course")
+  .get(
+    verifyAccessToken,
+    validationParams(validationGetCourseStudentInstructorList),
+    catchAsync(getCourseStudentInstructorList),
+  );
 
 coursesRouter
-  .route("/get-course-student-instructor-list/:course")
-  .get(verifyAccessToken);
+  .route("/:id")
+  .get(
+    verifyAccessToken,
+    validationParams(validationGetCourseOnId),
+    catchAsync(getCourseOnId),
+  );
 
 export { coursesRouter };
 export default coursesRouter;

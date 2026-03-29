@@ -5,9 +5,13 @@ import CourseModel from "./courses.model";
 import {
   validationCreateCourseType,
   validationGetCourseOnIdType,
+  validationGetCourseStudentInstructorListType,
 } from "./courses.types";
 import { createConversationService } from "../conversations/conversations.service";
 import { ConversationType } from "../conversations/conversations.model";
+import EnrollmentModel from "../enrollments/enrollments.model";
+import { Types } from "mongoose";
+import { Request } from "express";
 
 // FUNCTION
 export const createCourseService = async (
@@ -47,7 +51,7 @@ export const createCourseService = async (
   // create the reference of conversation in course
   newCourse.conversation = newConversation.conversation._id;
 
-  await newCourse.save()
+  await newCourse.save();
 
   return {
     course: newCourse,
@@ -80,4 +84,93 @@ export const getCourseOnIdService = async (
   }
 
   return { course };
+};
+
+// FUNCTION
+export const getCourseStudentInstructorListService = async (
+  req: Request,
+  reqParams: validationGetCourseStudentInstructorListType,
+) => {
+  const { course } = reqParams;
+  const user = req.user;
+
+  const pipeline = [
+    {
+      $match: { course: new Types.ObjectId(course) },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "student",
+        foreignField: "_id",
+        as: "student",
+      },
+    },
+    {
+      $unwind: {
+        path: "$student",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "instructor",
+        foreignField: "_id",
+        as: "instructor",
+      },
+    },
+    {
+      $unwind: {
+        path: "$instructor",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $group: {
+        _id: "$course",
+        students: {
+          $push: {
+            _id: "$student._id",
+            fullName: "$student.fullName",
+            role: "$student.role",
+          },
+        },
+        instructor: {
+          $first: {
+            _id: "$instructor._id",
+            fullName: "$instructor.fullName",
+            role: "$instructor.role",
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        result: {
+          $concatArrays: [["$instructor"], "$students"],
+        },
+      },
+    },
+    {
+      $project: {
+        result: {
+          $filter: {
+            input: "$result",
+            as: "item",
+            cond: {
+              $ne: ["$$item._id", new Types.ObjectId(user?._id)],
+            },
+          },
+        },
+      },
+    },
+  ];
+
+  const courseStudentInstructorList = await EnrollmentModel.aggregate(pipeline);
+
+  return {
+    courseStudentInstructorList: courseStudentInstructorList[0].result,
+  };
 };
