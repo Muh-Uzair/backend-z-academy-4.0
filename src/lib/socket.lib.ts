@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import Redis from "ioredis";
-import MessageModel from "@/modules/messages/messages.model";
+import { IMessagePayload } from "@/modules/messages/messages.model";
 import { validationCreateMessage } from "@/modules/messages/messages.validation";
 import { env } from "@/config/env";
 import generatePrivateConversationId from "@/utils/generatePrivateConversationId";
@@ -9,7 +9,17 @@ import ConversationModel, {
   IConversation,
 } from "@/modules/conversations/conversations.model";
 import { Types } from "mongoose";
+import { produceMessagesKafka } from "./kafka.lib";
 
+// ─── Redis Channels ────────────────────────────────────────────────────────────
+// Each channel carries a { roomName, message } payload.
+// All Socket.IO servers subscribe to these channels.
+// When any server publishes, Redis fans it out to every server,
+// and each server delivers the message to its own local room members.
+const CHANNEL_COURSE = "COURSE_MESSAGES";
+const CHANNEL_COURSE_PRIVATE = "COURSE_PRIVATE_MESSAGES";
+
+// ─── Two Redis clients (required: a subscribed client cannot publish) ──────────
 const pub = new Redis({
   host: env.REDIS_HOST,
   port: env.REDIS_PORT,
@@ -24,15 +34,11 @@ const sub = new Redis({
   password: env.REDIS_PASSWORD,
 });
 
-// DIVIDER main class
+// ─── Main SocketLib class ──────────────────────────────────────────────────────
 class SocketLib {
-  // 1 : socket variables
   private _io!: Server;
 
-  // 2 : constructor
   constructor() {
-    console.log("Socket server init");
-
     this._io = new Server({
       cors: {
         allowedHeaders: ["*"],
@@ -40,87 +46,93 @@ class SocketLib {
       },
     });
 
-    sub.subscribe("MESSAGES");
+    // Subscribe to both channels once at startup.
+    // Every server instance (A, B, C …) does the same,
+    // so Redis will fan out to all of them.
+    sub.subscribe(CHANNEL_COURSE, CHANNEL_COURSE_PRIVATE, (err) => {
+      if (err) {
+        console.error("Redis subscription error:", err);
+      }
+    });
   }
 
-  // 3 : getters and setters
   get io() {
     return this._io;
   }
 
-  // 4 : methods
   public initListeners() {
-    // 1 : testing purposes
-    console.log("Socket listeners init");
-
     const io = this.io;
 
-    // 2 : listening for messages from redis
-    sub.on("MESSAGES", (channel, message) => {
-      console.log("New message from redis ===>", message);
+    // ─── Redis → Socket.IO delivery ─────────────────────────────────────────────
+    // This fires on EVERY server instance whenever any server publishes.
+    // Each server then delivers the message to whichever clients it holds
+    // in that room locally.
+    //
+    // Fix: the correct event name is "message", NOT the channel name.
+    sub.on("message", (channel: string, payload: string) => {
+      try {
+        const { roomName, message } = JSON.parse(payload);
 
-      io.emit("event:message", JSON.parse(message));
+        if (channel === CHANNEL_COURSE) {
+          // Deliver to all clients in this course room on THIS server
+          io.to(roomName).emit("event:course-message", message);
+        }
+
+        if (channel === CHANNEL_COURSE_PRIVATE) {
+          // Deliver to all clients in this private room on THIS server
+          io.to(roomName).emit("event:course-private-message", message);
+        }
+      } catch (err) {
+        console.error("Failed to parse Redis message:", err);
+      }
     });
 
-    // 3 :  DIVIDER DIVIDER DIVIDER main socket connection
+    // ─── Socket.IO connection ────────────────────────────────────────────────────
     io.on("connection", (socket) => {
-      console.log("New client connected", socket.id);
-
-      socket.on("event:message", async ({ message }: { message: string }) => {
-        console.log("New message arrived message ====>", message);
-
-        await pub.publish("MESSAGES", JSON.stringify({ message }));
-      });
-
-      // DIVIDER joining the course room
+      // ── Join course (group) room ───────────────────────────────────────────────
       socket.on(
         "event:join-course-room",
         async ({ conversationId }: { conversationId: string }) => {
-          const roomName = `course:${conversationId}`;
+          try {
+            const roomName = `course:${conversationId}`;
 
-          console.log(
-            "joinRoom ----------------------------------\n",
-            roomName,
-          );
+            // Leave any other course rooms before joining the new one
+            const existingCourseRooms = Array.from(socket.rooms).filter(
+              (room) => room.startsWith("course:"),
+            );
+            await Promise.all(
+              existingCourseRooms.map((room) => socket.leave(room)),
+            );
 
-          const existingPrivateRooms = Array.from(socket.rooms).filter((room) =>
-            room.startsWith("course:"),
-          );
-
-          await Promise.all(
-            existingPrivateRooms.map((room) => socket.leave(room)),
-          );
-
-          socket.join(roomName);
+            socket.join(roomName);
+          } catch (err) {
+            console.error("event:join-course-room error:", err);
+          }
         },
       );
 
-      // DIVIDER sending the message to the course room
+      // ── Leave course room ──────────────────────────────────────────────────────
       socket.on(
-        "event:course-message",
-        async (data: {
-          conversation: string;
-          sender: {
-            id: string;
-            fullName: string;
-          };
-          receiver: {
-            id: string;
-            fullName: string;
-          };
-          content: string;
-          messageType: "text" | "file";
-        }) => {
-          // 1 : validate incoming data
+        "event:leave-course-room",
+        async ({ conversationId }: { conversationId: string }) => {
+          try {
+            const roomName = `course:${conversationId}`;
+            socket.leave(roomName);
+          } catch (err) {
+            console.error("event:leave-course-room error:", err);
+          }
+        },
+      );
+
+      // ── Send course (group) message ────────────────────────────────────────────
+      socket.on("event:course-message", async (data: IMessagePayload) => {
+        try {
+          // 1 : Validate
           const validationResult = validationCreateMessage.safeParse(data);
 
-          // 2 : if validation fails
           if (!validationResult.success) {
-            // ZodError instance
             const { issues } = validationResult.error;
-
             console.error("Validation Error:", issues);
-
             socket.emit("event:course-message-error", {
               message: "Invalid message data",
               errors: issues.map((iss) => ({
@@ -129,201 +141,185 @@ class SocketLib {
                 message: iss.message,
               })),
             });
-
             return;
           }
 
-          // 3 : if validation passes
           const validatedData = validationResult.data;
-
-          // 4 : check that user has joined or not
           const roomName = `course:${validatedData.conversation}`;
-          const isJoined = socket.rooms.has(roomName);
 
-          if (!isJoined) {
+          // 2 : Make sure this socket is actually in the room
+          if (!socket.rooms.has(roomName)) {
             socket.emit("event:course-message-error", {
               message: "You are not connected to this conversation room",
             });
-
             return;
           }
 
-          // 5 : save to db
-          const newMessage = await MessageModel.create({
+          // 3 : Persist to DB
+          const newMessage = {
             conversation: validatedData.conversation,
             sender: validatedData.sender,
             receiver: null,
             content: validatedData.content,
             messageType: validatedData.messageType,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          // 4 : Publish to Redis → all servers will deliver to their local room members
+          //     This replaces the old direct io.to(roomName).emit() call so that
+          //     clients on OTHER servers also receive the message.
+          await pub.publish(
+            CHANNEL_COURSE,
+            JSON.stringify({ roomName, message: newMessage }),
+          );
+
+          await produceMessagesKafka(newMessage);
+        } catch (err) {
+          console.error("event:course-message error:", err);
+          socket.emit("event:course-message-error", {
+            message: "An internal error occurred",
           });
+        }
+      });
 
-          // 6 : broadcast into room
-          console.log(
-            "roomName ----------------------------------\n",
-            roomName,
-          );
-
-          io.to(roomName).emit("event:course-message", newMessage);
-
-          // TODO: publish into kafka
-        },
-      );
-
-      // DIVIDER leaving course room
-      socket.on(
-        "event:leave-course-room",
-        async ({ conversationId }: { conversationId: string }) => {
-          const roomName = `course:${conversationId}`;
-
-          console.log(
-            "leaveRoom ----------------------------------\n",
-            roomName,
-          );
-
-          socket.leave(roomName);
-        },
-      );
-
-      // DIVIDER joining private course room
+      // ── Join private 1-on-1 room ───────────────────────────────────────────────
       socket.on(
         "event:join-course-private-room",
         async (data: {
           course: string;
-          sender: {
-            id: Types.ObjectId;
-            fullName: string;
-          };
-          receiver: {
-            id: Types.ObjectId;
-            fullName: string;
-          };
+          sender: { id: Types.ObjectId; fullName: string };
+          receiver: { id: Types.ObjectId; fullName: string };
         }) => {
-          console.log(data);
-          // 1 : generate a unique conversation id
-          const uniqueConversationId: string = generatePrivateConversationId(
-            String(data.course),
-            String(data.sender?.id),
-            String(data.receiver?.id),
-          );
+          try {
+            // 1 : Deterministic unique ID from course + both user IDs
+            const uniqueConversationId = generatePrivateConversationId(
+              String(data.course),
+              String(data.sender?.id),
+              String(data.receiver?.id),
+            );
 
-          // 2 : check the conversation for this or create a new one
-          let conversation: IConversation | null | unknown = null;
+            // 2 : Find or create the conversation document
+            const conversation =
+              (await ConversationModel.findOne({
+                privateChatConversationId: uniqueConversationId,
+              })) ??
+              (await ConversationModel.create({
+                conversationType: ConversationType.PRIVATE_1V1,
+                course: data.course,
+                privateChatConversationId: uniqueConversationId,
+                participants: [data.sender?.id, data.receiver?.id],
+              }));
 
-          conversation = await ConversationModel.findOne({
-            privateChatConversationId: uniqueConversationId,
-          });
+            if (!conversation) {
+              throw new Error("Failed to find or create conversation");
+            }
 
-          if (!conversation) {
-            conversation = await ConversationModel.create({
-              conversationType: ConversationType.PRIVATE_1V1,
-              course: data.course,
-              privateChatConversationId: uniqueConversationId,
-              participants: [data.sender?.id, data.receiver?.id],
+            // 3 : Join the room (leave any previous private rooms first)
+            const roomName = `course-private:${(conversation as IConversation)._id}`;
+
+            const existingPrivateRooms = Array.from(socket.rooms).filter(
+              (room) => room.startsWith("course-private:"),
+            );
+            await Promise.all(
+              existingPrivateRooms.map((room) => socket.leave(room)),
+            );
+
+            socket.join(roomName);
+
+            // 4 : Confirm conversation info back to this client only
+            socket.emit("event:course-private-conversation-info", conversation);
+          } catch (err) {
+            console.error("event:join-course-private-room error:", err);
+            socket.emit("event:course-private-message-error", {
+              message: "Failed to join private room",
             });
           }
-
-          if (!conversation) {
-            throw new Error("Something went wrong while creating conversation");
-          }
-
-          // 3 : join the user into this conversation with room name as course-private:uniqueConversationId
-          const roomName = `course-private:${(conversation as IConversation)._id}`;
-
-          const existingPrivateRooms = Array.from(socket.rooms).filter((room) =>
-            room.startsWith("course-private:"),
-          );
-
-          await Promise.all(
-            existingPrivateRooms.map((room) => socket.leave(room)),
-          );
-
-          socket.join(roomName);
-
-          // 4 : send conversation info to that exact user
-          socket.emit("event:course-private-conversation-info", conversation);
         },
       );
 
-      // DIVIDER listening for private message
+      // ── Send private message ───────────────────────────────────────────────────
       socket.on(
         "event:course-private-message",
         async (data: {
-          conversation: string;
-          sender: {
-            id: string;
-            fullName: string;
-          };
-          receiver: {
-            id: string;
-            fullName: string;
-          };
+          conversation: string; // privateChatConversationId
+          sender: { id: string; fullName: string };
+          receiver: { id: string; fullName: string };
           content: string;
           messageType: "text" | "file";
         }) => {
-          const conversation = await ConversationModel.findOne({
-            privateChatConversationId: data.conversation,
-            conversationType: ConversationType.PRIVATE_1V1,
-          });
-
-          if (!conversation) {
-            socket.emit("event:course-private-message-error", {
-              message: "Private conversation not found",
+          try {
+            // 1 : Resolve privateChatConversationId → actual conversation doc
+            const conversation = await ConversationModel.findOne({
+              privateChatConversationId: data.conversation,
+              conversationType: ConversationType.PRIVATE_1V1,
             });
 
-            return;
-          }
+            if (!conversation) {
+              socket.emit("event:course-private-message-error", {
+                message: "Private conversation not found",
+              });
+              return;
+            }
 
-          const validationResult = validationCreateMessage.safeParse({
-            ...data,
-            conversation: String(conversation._id),
-          });
-
-          if (!validationResult.success) {
-            const { issues } = validationResult.error;
-
-            console.error("Validation Error:", issues);
-
-            socket.emit("event:course-private-message-error", {
-              message: "Invalid private message data",
-              errors: issues.map((iss) => ({
-                path: iss.path,
-                code: iss.code,
-                message: iss.message,
-              })),
+            // 2 : Validate with the real _id substituted in
+            const validationResult = validationCreateMessage.safeParse({
+              ...data,
+              conversation: String(conversation._id),
             });
 
-            return;
-          }
+            if (!validationResult.success) {
+              const { issues } = validationResult.error;
+              console.error("Validation Error:", issues);
+              socket.emit("event:course-private-message-error", {
+                message: "Invalid private message data",
+                errors: issues.map((iss) => ({
+                  path: iss.path,
+                  code: iss.code,
+                  message: iss.message,
+                })),
+              });
+              return;
+            }
 
-          const validatedData = validationResult.data;
+            const validatedData = validationResult.data;
+            const roomName = `course-private:${conversation._id}`;
 
-          const roomName = `course-private:${conversation._id}`;
-          const isJoined = socket.rooms.has(roomName);
+            // 3 : Make sure this socket is in the room
+            if (!socket.rooms.has(roomName)) {
+              socket.emit("event:course-private-message-error", {
+                message:
+                  "You are not connected to this private conversation room",
+              });
+              return;
+            }
 
-          if (!isJoined) {
+            // 4 : Persist to DB
+            const newMessage = {
+              conversation: validatedData.conversation,
+              sender: validatedData.sender,
+              receiver: validatedData.receiver,
+              content: validatedData.content,
+              messageType: validatedData.messageType,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+
+            // 5 : Publish to Redis → all servers deliver to their local private room members
+            await pub.publish(
+              CHANNEL_COURSE_PRIVATE,
+              JSON.stringify({ roomName, message: newMessage }),
+            );
+
+            await produceMessagesKafka(newMessage);
+          } catch (err) {
+            console.error("event:course-private-message error:", err);
             socket.emit("event:course-private-message-error", {
-              message:
-                "You are not connected to this private conversation room",
+              message: "An internal error occurred",
             });
-
-            return;
           }
-
-          const newMessage = await MessageModel.create({
-            conversation: validatedData.conversation,
-            sender: validatedData.sender,
-            receiver: validatedData.receiver,
-            content: validatedData.content,
-            messageType: validatedData.messageType,
-          });
-
-          io.to(roomName).emit("event:course-private-message", newMessage);
         },
       );
-
-      socket.on("disconnect", () => {
-        console.log("Client disconnected", socket.id);
-      });
     });
   }
 }

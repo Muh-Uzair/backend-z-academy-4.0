@@ -3,12 +3,15 @@ import { env } from "@/config/env.js";
 import SocketLib from "./lib/socket.lib.js";
 import { createServer } from "node:http";
 import mongoose from "mongoose";
+import { consumeMessagesKafka } from "./lib/kafka.lib.js";
 
 const main = async () => {
   try {
     await mongoose.connect(env.MONGO_DB_CONNECTION_STRING, {
       bufferCommands: false,
     });
+
+    await consumeMessagesKafka();
 
     console.log("Database connection successful");
 

@@ -5,6 +5,14 @@ export enum MessageType {
   FILE = "file",
 }
 
+export interface IMessagePayload {
+  conversation: string;
+  sender: { id: string; fullName: string };
+  receiver: { id: string; fullName: string } | null;
+  content: string;
+  messageType: "text" | "file";
+}
+
 export interface IMessage extends Document {
   conversation: Types.ObjectId;
   sender: {

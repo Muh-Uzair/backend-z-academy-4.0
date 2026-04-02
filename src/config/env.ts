@@ -26,6 +26,9 @@ const envSchema = z.object({
   REDIS_PORT: z.number(),
   REDIS_USERNAME: z.string(),
   REDIS_PASSWORD: z.string(),
+  KAFKA_BROKER: z.string(),
+  KAFKA_USERNAME: z.string(),
+  KAFKA_PASSWORD: z.string(),
 });
 
 type Env = z.infer<typeof envSchema>;
