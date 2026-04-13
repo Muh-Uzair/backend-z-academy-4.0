@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const kafka = new Kafka({
+  clientId: "backend-z-academy",
   brokers: [`${env.KAFKA_BROKER}`],
   ssl: {
     ca: [fs.readFileSync(path.resolve(__dirname, "../../ca.pem"), "utf-8")],
@@ -20,9 +21,12 @@ const kafka = new Kafka({
     username: env.KAFKA_USERNAME,
     password: env.KAFKA_PASSWORD,
   },
+  connectionTimeout: 10000,
+  authenticationTimeout: 10000,
+  requestTimeout: 30000,
   retry: {
-    initialRetryTime: 300,
-    retries: 5,
+    initialRetryTime: 1000,
+    retries: 8,
   },
 });
 
@@ -58,7 +62,10 @@ export async function produceMessagesKafka(message: IMessagePayload) {
 
 export async function consumeMessagesKafka() {
   const consumer = kafka.consumer({ groupId: "messages-consumer-group" });
+  console.log("Connecting Kafka consumer...");
   await consumer.connect();
+
+  console.log("Kafka consumer connected. Subscribing to topic MESSAGES...");
   await consumer.subscribe({ topic: "MESSAGES" });
 
   await consumer.run({
