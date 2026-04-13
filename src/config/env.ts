@@ -16,8 +16,8 @@ const envSchema = z.object({
   REFRESH_TOKEN_SECRET: z
     .string()
     .min(32, "ACCESS_TOKEN_SECRET must be at least 32 characters"),
-  ACCESS_TOKEN_EXPIRY: z.number().default(54000000),
-  REFRESH_TOKEN_EXPIRY: z.number().default(604800000),
+  ACCESS_TOKEN_EXPIRY: z.string().default("15m"),
+  REFRESH_TOKEN_EXPIRY: z.string().default("7d"),
   AWS_REGION: z.string(),
   AWS_ACCESS_KEY_ID: z.string(),
   AWS_SECRET_ACCESS_KEY: z.string(),
@@ -37,8 +37,6 @@ function validateEnv(): Env {
   try {
     return envSchema.parse({
       ...process.env,
-      ACCESS_TOKEN_EXPIRY: Number(process.env.ACCESS_TOKEN_EXPIRY),
-      REFRESH_TOKEN_EXPIRY: Number(process.env.REFRESH_TOKEN_EXPIRY),
       REDIS_PORT: Number(process.env.REDIS_PORT),
     });
   } catch (error) {

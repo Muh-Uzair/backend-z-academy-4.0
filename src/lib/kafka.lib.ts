@@ -1,10 +1,14 @@
 import { IMessagePayload } from "@/modules/messages";
 import { Kafka, Producer } from "kafkajs";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { env } from "@/config/env";
 import MessageModel from "@/modules/messages/messages.model";
 import mongoose from "mongoose";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const kafka = new Kafka({
   brokers: [`${env.KAFKA_BROKER}`],

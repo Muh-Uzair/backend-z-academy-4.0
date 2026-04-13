@@ -5,7 +5,6 @@
     "lib": ["ES2022"],
     "moduleResolution": "bundler",
     "rootDir": "./src",
-    "outDir": "./dist",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": false, // ESLint handles this with custom rules for req/res/next
@@ -18,6 +17,7 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "noEmit": true,
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
